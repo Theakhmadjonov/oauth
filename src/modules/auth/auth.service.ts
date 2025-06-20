@@ -1,26 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from 'src/core/database/prisma.service';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
-
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  constructor(
+    private db: PrismaService,
+    private jwt: JwtService,
+  ) {}
+  async oauthGoogleCallback(user: any) {
+    const findUSer = await this.db.user.findFirst({
+      where: { email: user.email },
+    });
+    if (!findUSer) {
+      const newUser = await this.db.user.create({
+        data: {
+          email: user.email,
+          fullName: user.name,
+          oauth_account_user: true,
+        },
+      });
+      await this.db.oAuthAccounts.create({
+        data: {
+          provider: 'google',
+          providerId: user.sub,
+          userId: newUser.id,
+        },
+      });
+      const token = await this.jwt.signAsync({ userId: newUser.id });
+      return { token };
+    }
   }
 }
