@@ -6,16 +6,20 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 @Module({
   imports: [
     DatabaseModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     JwtModule.registerAsync({
-      imports: [ConfigModule],
       global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_KEY') as string,
+        secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: '1d',
+          expiresIn: '1h',
         },
       }),
-      inject: [ConfigService],
     }),
   ],
   exports: [],
